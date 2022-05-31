@@ -59,15 +59,6 @@ class TaxiEnv(Env):
     - 2: mover derecha
     - 3: mover izquierda
     
-    vacio
-    taxi
-    destino
-    pasajero
-    taxi y pasajero
-    
-    vacio
-    robot
-    destino
     
     
     ### Observaciones
@@ -110,6 +101,7 @@ class TaxiEnv(Env):
 
         #elf.locs = locs = [(0, 0), (0, 4), (4, 0), (4, 3)]
         self.locs= locs=[(1,3),(4,2),(4,4)]
+        self.locs_colors = [(255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 0, 255)]
 
         num_states = 25
         num_rows = 5
@@ -125,25 +117,36 @@ class TaxiEnv(Env):
         for row in range(num_rows):
             for col in range(num_columns):
                 state = self.encode(row, col)
+                self.initial_state_distrib[state] += 1
                 for action in range(num_actions):
                     new_row, new_col = row, col
                     robot_loc = (row, col)
                     done = False
-                    reward =-1
+                    reward = (-1)
                     """    ### Acciones = 4 
                         - 0: mover abajo
                         - 1: mover arriba
                         - 2: mover derecha
                         - 3: mover izquierda """
-                    if action == 0 and (self.desc[row+1,col]== b"*"):
-                       new_row = min(row + 1, max_row)
+        
+                    # if action == 0 and self.desc[row+1,col]== b" ": #desc es el mapa"
+                    #     new_row = min(row + 1, max_row)
+                    # elif action == 1 and self.desc[row-1,col]== b" ":
+                    #     new_row = max(row - 1, 0)
+                    if action == 0:
+                        new_row = min(row + 1, max_row)
+                    elif action == 1:
+                        new_row = max(row - 1, 0)
+                        
+                    if action == 0 and self.desc[row+1,col]== b"*": #desc es el mapa"
+                        new_row = min(row + 1, max_row)
                     elif action == 1 and self.desc[row-1,col]== b"*":
-                       new_row = max(row - 1, 0)
+                        new_row = max(row - 1, 0)
+                        
                     if action == 2 and self.desc[1 + row, 2 * col + 2] == b":":
-                       new_col = min(col + 1, max_col)
+                        new_col = min(col + 1, max_col)
                     elif action == 3 and self.desc[1 + row, 2 * col] == b":":
-                       new_col = max(col - 1, 0)
-                       
+                        new_col = max(col - 1, 0)
                     if robot_loc == locs[2]:
                        reward = 20
                        done = True
@@ -154,7 +157,6 @@ class TaxiEnv(Env):
                         new_row, new_col
                     )
                     self.P[state][action].append((1.0, new_state, reward, done))
-                    
         self.initial_state_distrib /= self.initial_state_distrib.sum()
         self.action_space = spaces.Discrete(num_actions)
         self.observation_space = spaces.Discrete(num_states)   
@@ -162,21 +164,23 @@ class TaxiEnv(Env):
                 
 
     
+#   def encode(self, taxi_row, taxi_col, pass_loc, dest_idx):
     def encode(self, robot_row, robot_col):
         
+        # (5) 5, 5, 4
         i = robot_row
         i *= 5
         i += robot_col
-        i *= 5
+        #i += pass_loc
+        #i *= 4
+        #i += dest_idx
         return i
 
     def decode(self, i):
         out = []
-        i = i // 5
         out.append(i % 5)
-        i = i // 5
-        out.append(i)
-        assert 0 <= i < 5
+        out.append(i // 5)
+        assert 0 <= i < 25
         return reversed(out)
 
     def step(self, a):
