@@ -390,11 +390,15 @@ def main():
             estado= siguiente_estado
           listarecompnesa.append(r_sum)
           acciones.append(accion)
+        col1, col2  = st.columns(2)
+        with col1:
+            st.header("Recompensa")
+            st.dataframe(listarecompnesa)
+        with col2:
+            st.header("Q_table")
+            st.dataframe(q_table)
         
-        st.header("Recompensa obtenida")
-        st.dataframe(listarecompnesa)
-        st.header("Q_table obtenida")
-        st.dataframe(q_table)
+        
         st.header("Variacion de Recompensa:")
         col1, col2 ,col3, col4 = st.columns(4)
         with col1:
