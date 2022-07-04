@@ -1,13 +1,13 @@
 from contextlib import closing
 from io import StringIO
 from os import path
-from typing import Optional
-import pygame
-from pygame.constants import SRCALPHA
+from typing import List, Optional
+
 import numpy as np
 
 from gym import Env, spaces, utils
 from gym.envs.toy_text.utils import categorical_sample
+from gym.error import DependencyNotInstalled
 
 LEFT = 0
 DOWN = 1
@@ -29,10 +29,15 @@ MAPS = {
 }
 
 
-def generate_random_map(size=8, p=0.8):
+def generate_random_map(size: int = 8, p: float = 0.8) -> List[str]:
     """Generates a random valid map (one that has a path from start to goal)
-    :param size: size of each side of the grid
-    :param p: probability that a tile is frozen
+
+    Args:
+        size: size of each side of the grid
+        p: probability that a tile is frozen
+
+    Returns:
+        A random valid map
     """
     valid = False
 
@@ -67,8 +72,9 @@ def generate_random_map(size=8, p=0.8):
 
 class FrozenLakeEnv(Env):
     """
-    Frozen lake involves crossing a frozen lake from Start(S) to Goal(G) without falling into any Holes(H) by walking over
-    the Frozen(F) lake. The agent may not always move in the intended direction due to the slippery nature of the frozen lake.
+    Frozen lake involves crossing a frozen lake from Start(S) to Goal(G) without falling into any Holes(H)
+    by walking over the Frozen(F) lake.
+    The agent may not always move in the intended direction due to the slippery nature of the frozen lake.
 
 
     ### Action Space
@@ -242,6 +248,13 @@ class FrozenLakeEnv(Env):
             return self._render_gui(desc, mode)
 
     def _render_gui(self, desc, mode):
+        try:
+            import pygame
+        except ImportError:
+            raise DependencyNotInstalled(
+                "pygame is not installed, run `pip install gym[toy_text]`"
+            )
+
         if self.window_surface is None:
             pygame.init()
             pygame.display.init()
@@ -276,12 +289,11 @@ class FrozenLakeEnv(Env):
             ]
             self.elf_images = [pygame.image.load(f_name) for f_name in elfs]
 
-        board = pygame.Surface(self.window_size, flags=SRCALPHA)
         cell_width = self.window_size[0] // self.ncol
         cell_height = self.window_size[1] // self.nrow
         smaller_cell_scale = 0.6
-        small_cell_w = smaller_cell_scale * cell_width
-        small_cell_h = smaller_cell_scale * cell_height
+        small_cell_w = int(smaller_cell_scale * cell_width)
+        small_cell_h = int(smaller_cell_scale * cell_height)
 
         # prepare images
         last_action = self.lastaction if self.lastaction is not None else 1
@@ -319,7 +331,7 @@ class FrozenLakeEnv(Env):
                 else:
                     self.window_surface.blit(ice_img, (rect[0], rect[1]))
 
-                pygame.draw.rect(board, (180, 200, 230), rect, 1)
+                pygame.draw.rect(self.window_surface, (180, 200, 230), rect, 1)
 
         # paint the elf
         bot_row, bot_col = self.s // self.ncol, self.s % self.ncol
@@ -335,7 +347,6 @@ class FrozenLakeEnv(Env):
             elf_rect = self._center_small_rect(cell_rect, elf_img.get_size())
             self.window_surface.blit(elf_img, elf_rect)
 
-        self.window_surface.blit(board, board.get_rect())
         if mode == "human":
             pygame.event.pump()
             pygame.display.update()
@@ -369,6 +380,13 @@ class FrozenLakeEnv(Env):
         with closing(outfile):
             return outfile.getvalue()
 
+    def close(self):
+        if self.window_surface is not None:
+            import pygame
+
+            pygame.display.quit()
+            pygame.quit()
+
 
 # Elf and stool from https://franuka.itch.io/rpg-snow-tileset
-# All other assets by Mel Sawyer
+# All other assets by Mel Sawyer http://www.cyaneus.com/

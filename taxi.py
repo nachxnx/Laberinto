@@ -1,3 +1,5 @@
+##laberintoooo
+
 # -*- coding: utf-8 -*-
 """
 Created on Tue May 31 09:58:09 2022
@@ -98,11 +100,7 @@ class TaxiEnv(Env):
 
     def __init__(self):
         self.desc = np.asarray(MAP, dtype="c")
-
-        #elf.locs = locs = [(0, 0), (0, 4), (4, 0), (4, 3)]
-        self.locs= locs=[(1,3),(4,2),(4,4)]
-        self.locs_colors = [(255, 0, 0),  (255, 255, 0),(0, 255, 0), (0, 0, 255)]
-
+        self.locs= locs=[(1,3),(4,2),(4,4)]  
         num_states = 25
         num_rows = 5
         num_columns = 5
@@ -110,38 +108,40 @@ class TaxiEnv(Env):
         max_col = num_columns - 1
         self.initial_state_distrib = np.zeros(num_states)
         num_actions = 4 #arriba, abajo, izquierda, derecha
-        self.P = {
-            state: {action: [] for action in range(num_actions)}
-            for state in range(num_states)
-        }
+        self.P = {state: {action: [] for action in range(num_actions)}for state in range(num_states)}
         for row in range(num_rows):
             for col in range(num_columns):
                 state = self.encode(row, col)
-                a=(row,col)
-                if a!=locs[2]:
-                    self.initial_state_distrib[state] += 1
+                self.initial_state_distrib[state] += 1
                 for action in range(num_actions):
-                    new_row, new_col = row, col
                     robot_loc = (row, col)
-                    # if robot_loc!=locs[2]:
-                    #     self.initial_state_distrib[state] += 1
+                
+                    new_row, new_col = row, col
                     done = False
                     reward = (-1)
+                    
+                    
                     if action == 0 and self.desc[2*row+2 , 2*col+1]== b"*": #desc es el mapa"
                         new_row = min(row+1, max_row)
                     elif action == 1 and self.desc[2*row , 2*col+1]== b"*":
                         new_row = max(row-1, 0)
-                    if action == 2 and self.desc[1 + row, 2 * col + 2] == b":":
+                        
+                        
+                    if action == 2 and self.desc[1 + row*2, 2 * col + 2] == b":":
                         new_col = min(col + 1, max_col)
-                    elif action == 3 and self.desc[1 + row, 2 * col] == b":":
+                        
+                        
+                    elif action == 3 and self.desc[1 + row*2, 2 * col] == b":":
                         new_col = max(col - 1, 0)
-                        #print(self.desc[1 + row, 2 * col])
+                        
+                        
                     if robot_loc == locs[2]:
                        reward = 20
                        done = True
                     elif robot_loc == locs[0] or robot_loc == locs[1]:
                        reward = -10
                        done = True
+                       
                     new_state = self.encode(
                         new_row, new_col
                     )
@@ -153,16 +153,10 @@ class TaxiEnv(Env):
                 
 
     
-#   def encode(self, taxi_row, taxi_col, pass_loc, dest_idx):
     def encode(self, robot_row, robot_col):
-        
-        # (5) 5, 5, 4
         i = robot_row
         i *= 5
         i += robot_col
-        #i += pass_loc
-        #i *= 4
-        #i += dest_idx
         return i
 
     def decode(self, i):
@@ -196,7 +190,6 @@ class TaxiEnv(Env):
 
         out = self.desc.copy().tolist()
         out = [[c.decode("utf-8") for c in line] for line in out]
-        #taxi_row, taxi_col, pass_idx, dest_idx = self.decode(self.s)
         robot_row, robot_col = self.decode(self.s)
 
         def ul(x):
@@ -204,18 +197,13 @@ class TaxiEnv(Env):
 
         if (robot_row,robot_col)!= self.locs[2]:
             out[2 * robot_row +1][2 * robot_col + 1] = utils.colorize(
-            out[2 * robot_row +1][2 * robot_col + 1], "yellow", highlight=True)
+            out[2 * robot_row +1][2 * robot_col + 1], "blue", highlight=True)
         
-        #pi, pj = self.locs[pass_idx]
-        #    out[1 + pi][2 * pj + 1] = utils.colorize(
-        #        out[1 + pi][2 * pj + 1], "blue", bold=True)
         else:  
-            # out[1 + robot_row][2 * robot_col + 1] = utils.colorize(
-            #     ul(out[1 + robot_row][2 * robot_col + 1]), "green", highlight=True)
+           
             out[2 * robot_row +1][2 * robot_col + 1] = utils.colorize(
-                ul(out[2 * robot_row +1][2 * robot_col + 1]), "green", highlight=True)
-        #di, dj = self.locs[dest_idx]
-        #out[1 + di][2 * dj + 1] = utils.colorize(out[1 + di][2 * dj + 1], "magenta")
+            ul(out[2 * robot_row +1][2 * robot_col + 1]), "green", highlight=True)
+
         outfile.write("\n".join(["".join(row) for row in out]) + "\n")
         if self.lastaction is not None:
             outfile.write(

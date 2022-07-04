@@ -6,12 +6,10 @@ import math
 from typing import Optional
 
 import numpy as np
-import pygame
-from pygame import gfxdraw
 
 import gym
 from gym import spaces
-from gym.utils import seeding
+from gym.error import DependencyNotInstalled
 
 
 class MountainCarEnv(gym.Env):
@@ -40,20 +38,20 @@ class MountainCarEnv(gym.Env):
 
     The observation is a `ndarray` with shape `(2,)` where the elements correspond to the following:
 
-    | Num | Observation                                                 | Min                | Max    | Unit |
-    |-----|-------------------------------------------------------------|--------------------|--------|------|
-    | 0   | position of the car along the x-axis                        | -Inf               | Inf    | position (m) |
-    | 1   | velocity of the car                                         | -Inf               | Inf  | position (m) |
+    | Num | Observation                          | Min  | Max | Unit         |
+    |-----|--------------------------------------|------|-----|--------------|
+    | 0   | position of the car along the x-axis | -Inf | Inf | position (m) |
+    | 1   | velocity of the car                  | -Inf | Inf | position (m) |
 
     ### Action Space
 
     There are 3 discrete deterministic actions:
 
-    | Num | Observation                                                 | Value   | Unit |
-    |-----|-------------------------------------------------------------|---------|------|
-    | 0   | Accelerate to the left                                      | Inf    | position (m) |
-    | 1   | Don't accelerate                                            | Inf  | position (m) |
-    | 2   | Accelerate to the right                                     | Inf    | position (m) |
+    | Num | Observation             | Value | Unit         |
+    |-----|-------------------------|------ |--------------|
+    | 0   | Accelerate to the left  | Inf   | position (m) |
+    | 1   | Don't accelerate        | Inf   | position (m) |
+    | 2   | Accelerate to the right | Inf   | position (m) |
 
     ### Transition Dynamics:
 
@@ -63,16 +61,21 @@ class MountainCarEnv(gym.Env):
 
     *position<sub>t+1</sub> = position<sub>t</sub> + velocity<sub>t+1</sub>*
 
-    where force = 0.001 and gravity = 0.0025. The collisions at either end are inelastic with the velocity set to 0 upon collision with the wall. The position is clipped to the range `[-1.2, 0.6]` and velocity is clipped to the range `[-0.07, 0.07]`.
+    where force = 0.001 and gravity = 0.0025. The collisions at either end are inelastic with the velocity set to 0
+    upon collision with the wall. The position is clipped to the range `[-1.2, 0.6]` and
+    velocity is clipped to the range `[-0.07, 0.07]`.
 
 
     ### Reward:
 
-    The goal is to reach the flag placed on top of the right hill as quickly as possible, as such the agent is penalised with a reward of -1 for each timestep it isn't at the goal and is not penalised (reward = 0) for when it reaches the goal.
+    The goal is to reach the flag placed on top of the right hill as quickly as possible, as such the agent is
+    penalised with a reward of -1 for each timestep it isn't at the goal and is not penalised (reward = 0) for
+    when it reaches the goal.
 
     ### Starting State
 
-    The position of the car is assigned a uniform random value in *[-0.6 , -0.4]*. The starting velocity of the car is always assigned to 0.
+    The position of the car is assigned a uniform random value in *[-0.6 , -0.4]*.
+    The starting velocity of the car is always assigned to 0.
 
     ### Episode Termination
 
@@ -114,7 +117,7 @@ class MountainCarEnv(gym.Env):
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(self.low, self.high, dtype=np.float32)
 
-    def step(self, action):
+    def step(self, action: int):
         assert self.action_space.contains(
             action
         ), f"{action!r} ({type(action)}) invalid"
@@ -151,6 +154,14 @@ class MountainCarEnv(gym.Env):
         return np.sin(3 * xs) * 0.45 + 0.55
 
     def render(self, mode="human"):
+        try:
+            import pygame
+            from pygame import gfxdraw
+        except ImportError:
+            raise DependencyNotInstalled(
+                "pygame is not installed, run `pip install gym[classic_control]`"
+            )
+
         screen_width = 600
         screen_height = 400
 
@@ -242,6 +253,8 @@ class MountainCarEnv(gym.Env):
 
     def close(self):
         if self.screen is not None:
+            import pygame
+
             pygame.display.quit()
             pygame.quit()
             self.isopen = False

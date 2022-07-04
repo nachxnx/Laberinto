@@ -1,12 +1,11 @@
-from typing import Optional
 import os
+from typing import Optional
 
 import numpy as np
-import pygame
 
 import gym
 from gym import spaces
-from gym.utils import seeding
+from gym.error import DependencyNotInstalled
 
 
 def cmp(a, b):
@@ -95,11 +94,17 @@ class BlackjackEnv(gym.Env):
     ### Arguments
 
     ```
-    gym.make('Blackjack-v1', natural=False)
+    gym.make('Blackjack-v1', natural=False, sab=False)
     ```
 
-    <a id="nat">`natural`</a>: Whether to give an additional reward for
+    <a id="nat">`natural=False`</a>: Whether to give an additional reward for
     starting with a natural blackjack, i.e. starting with an ace and ten (sum is 21).
+
+    <a id="sab">`sab=False`</a>: Whether to follow the exact rules outlined in the book by
+    Sutton and Barto. If `sab` is `True`, the keyword argument `natural` will be ignored.
+    If the player achieves a natural blackjack and the dealer does not, the player
+    will win (i.e. get a reward of +1). The reverse rule does not apply.
+    If both the player and the dealer get a natural, it will be a draw (i.e. reward 0).
 
     ### Version History
     * v0: Initial versions release (1.0.0)
@@ -166,6 +171,13 @@ class BlackjackEnv(gym.Env):
             return self._get_obs(), {}
 
     def render(self, mode="human"):
+        try:
+            import pygame
+        except ImportError:
+            raise DependencyNotInstalled(
+                "pygame is not installed, run `pip install gym[toy_text]`"
+            )
+
         player_sum, dealer_card_value, usable_ace = self._get_obs()
         screen_width, screen_height = 600, 500
         card_img_height = screen_height // 3
@@ -176,8 +188,8 @@ class BlackjackEnv(gym.Env):
         white = (255, 255, 255)
 
         if not hasattr(self, "screen"):
+            pygame.init()
             if mode == "human":
-                pygame.init()
                 pygame.display.init()
                 self.screen = pygame.display.set_mode((screen_width, screen_height))
             else:
@@ -274,3 +286,13 @@ class BlackjackEnv(gym.Env):
             return np.transpose(
                 np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
             )
+
+    def close(self):
+        if hasattr(self, "screen"):
+            import pygame
+
+            pygame.display.quit()
+            pygame.quit()
+
+
+# Pixel art from Mariia Khmelnytska (https://www.123rf.com/photo_104453049_stock-vector-pixel-art-playing-cards-standart-deck-vector-set.html)

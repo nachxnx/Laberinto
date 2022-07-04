@@ -1,6 +1,7 @@
 import numpy as np
-from gym.envs.mujoco import mujoco_env
+
 from gym import utils
+from gym.envs.mujoco import mujoco_env
 
 
 def mass_center(model, sim):
@@ -11,7 +12,9 @@ def mass_center(model, sim):
 
 class HumanoidEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self):
-        mujoco_env.MujocoEnv.__init__(self, "humanoid.xml", 5)
+        mujoco_env.MujocoEnv.__init__(
+            self, "humanoid.xml", 5, mujoco_bindings="mujoco_py"
+        )
         utils.EzPickle.__init__(self)
 
     def _get_obs(self):

@@ -1,26 +1,27 @@
 __credits__ = ["Andrea PIERRÉ"]
 
-import sys
 import math
 from typing import Optional
 
 import numpy as np
-import pygame
-from pygame import gfxdraw
-
-import Box2D
-from Box2D.b2 import (
-    edgeShape,
-    circleShape,
-    fixtureDef,
-    polygonShape,
-    revoluteJointDef,
-    contactListener,
-)
 
 import gym
 from gym import error, spaces
-from gym.utils import colorize, seeding, EzPickle
+from gym.error import DependencyNotInstalled
+from gym.utils import EzPickle
+
+try:
+    import Box2D
+    from Box2D.b2 import (
+        circleShape,
+        contactListener,
+        edgeShape,
+        fixtureDef,
+        polygonShape,
+        revoluteJointDef,
+    )
+except ImportError:
+    raise DependencyNotInstalled("box2D is not installed, run `pip install gym[box2d]`")
 
 
 FPS = 50
@@ -185,12 +186,71 @@ class BipedalWalker(gym.Env, EzPickle):
             categoryBits=0x0001,
         )
 
-        high = np.array([np.inf] * 24).astype(np.float32)
+        # we use 5.0 to represent the joints moving at maximum
+        # 5 x the rated speed due to impulses from ground contact etc.
+        low = np.array(
+            [
+                -math.pi,
+                -5.0,
+                -5.0,
+                -5.0,
+                -math.pi,
+                -5.0,
+                -math.pi,
+                -5.0,
+                -0.0,
+                -math.pi,
+                -5.0,
+                -math.pi,
+                -5.0,
+                -0.0,
+            ]
+            + [-1.0] * 10
+        ).astype(np.float32)
+        high = np.array(
+            [
+                math.pi,
+                5.0,
+                5.0,
+                5.0,
+                math.pi,
+                5.0,
+                math.pi,
+                5.0,
+                5.0,
+                math.pi,
+                5.0,
+                math.pi,
+                5.0,
+                5.0,
+            ]
+            + [1.0] * 10
+        ).astype(np.float32)
         self.action_space = spaces.Box(
             np.array([-1, -1, -1, -1]).astype(np.float32),
             np.array([1, 1, 1, 1]).astype(np.float32),
         )
-        self.observation_space = spaces.Box(-high, high)
+        self.observation_space = spaces.Box(low, high)
+
+        # state = [
+        #     self.hull.angle,  # Normal angles up to 0.5 here, but sure more is possible.
+        #     2.0 * self.hull.angularVelocity / FPS,
+        #     0.3 * vel.x * (VIEWPORT_W / SCALE) / FPS,  # Normalized to get -1..1 range
+        #     0.3 * vel.y * (VIEWPORT_H / SCALE) / FPS,
+        #     self.joints[
+        #         0
+        #     ].angle,  # This will give 1.1 on high up, but it's still OK (and there should be spikes on hiting the ground, that's normal too)
+        #     self.joints[0].speed / SPEED_HIP,
+        #     self.joints[1].angle + 1.0,
+        #     self.joints[1].speed / SPEED_KNEE,
+        #     1.0 if self.legs[1].ground_contact else 0.0,
+        #     self.joints[2].angle,
+        #     self.joints[2].speed / SPEED_HIP,
+        #     self.joints[3].angle + 1.0,
+        #     self.joints[3].speed / SPEED_KNEE,
+        #     1.0 if self.legs[3].ground_contact else 0.0,
+        # ]
+        # state += [l.fraction for l in self.lidar]
 
     def _destroy(self):
         if not self.terrain:
@@ -367,9 +427,6 @@ class BipedalWalker(gym.Env, EzPickle):
         self.scroll = 0.0
         self.lidar_render = 0
 
-        W = VIEWPORT_W / SCALE
-        H = VIEWPORT_H / SCALE
-
         self._generate_terrain(self.hardcore)
         self._generate_clouds()
 
@@ -448,7 +505,7 @@ class BipedalWalker(gym.Env, EzPickle):
         else:
             return self.step(np.array([0, 0, 0, 0]))[0], {}
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         # self.hull.ApplyForceToCenter((0, 20), True) -- Uncomment this to receive a bit of stability help
         control_speed = False  # Should be easier as well
         if control_speed:
@@ -493,9 +550,8 @@ class BipedalWalker(gym.Env, EzPickle):
             2.0 * self.hull.angularVelocity / FPS,
             0.3 * vel.x * (VIEWPORT_W / SCALE) / FPS,  # Normalized to get -1..1 range
             0.3 * vel.y * (VIEWPORT_H / SCALE) / FPS,
-            self.joints[
-                0
-            ].angle,  # This will give 1.1 on high up, but it's still OK (and there should be spikes on hiting the ground, that's normal too)
+            self.joints[0].angle,
+            # This will give 1.1 on high up, but it's still OK (and there should be spikes on hiting the ground, that's normal too)
             self.joints[0].speed / SPEED_HIP,
             self.joints[1].angle + 1.0,
             self.joints[1].speed / SPEED_KNEE,
@@ -535,7 +591,15 @@ class BipedalWalker(gym.Env, EzPickle):
             done = True
         return np.array(state, dtype=np.float32), reward, done, {}
 
-    def render(self, mode="human"):
+    def render(self, mode: str = "human"):
+        try:
+            import pygame
+            from pygame import gfxdraw
+        except ImportError:
+            raise DependencyNotInstalled(
+                "pygame is not installed, run `pip install gym[box2d]`"
+            )
+
         if self.screen is None:
             pygame.init()
             pygame.display.init()
@@ -582,7 +646,7 @@ class BipedalWalker(gym.Env, EzPickle):
                 continue
             scaled_poly = []
             for coord in poly:
-                scaled_poly.append(([coord[0] * SCALE, coord[1] * SCALE]))
+                scaled_poly.append([coord[0] * SCALE, coord[1] * SCALE])
             pygame.draw.polygon(self.surf, color=color, points=scaled_poly)
             gfxdraw.aapolygon(self.surf, scaled_poly, color)
 
@@ -668,6 +732,8 @@ class BipedalWalker(gym.Env, EzPickle):
 
     def close(self):
         if self.screen is not None:
+            import pygame
+
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
