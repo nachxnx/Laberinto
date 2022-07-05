@@ -7,6 +7,7 @@ Created on Sat Jul  2 16:48:37 2022
 import pandas as pd
 import streamlit as st
 import numpy as np
+from PIL import Image
 
 
 
@@ -25,6 +26,12 @@ txt = st.text_area('Introduccion', '''
      Se define como el optimo Q* como el retorno que se puede obtener que obedece la ecuacion
      de Bellman.
      ''',height=330)
+     
+
+image = Image.open('AprendizajeRefuerzo-global.png')
+st.image(image)
+image = Image.open('premio-castigo.png')
+st.image(image)
      
 st.header("Mapa obtenido de OpenAI-gym del 'taxi-V3'")
 code = '''MAP = [ "+---------+",
@@ -201,7 +208,7 @@ with cool3:
     """                   
                    
 with st.container():
-    st.header("class TaxiEnv")
+    st.header("class TaxiEnv(LABERINTO)")
     code = ''' def __init__(self):
     self.desc = np.asarray(MAP, dtype="c")
     self.locs= locs=[(1,3),(4,2),(4,4)]
@@ -212,7 +219,8 @@ with st.container():
     max_col = num_columns - 1
     self.initial_state_distrib = np.zeros(num_states)
     num_actions = 4 #arriba, abajo, izquierda, derecha
-    self.P = {state: {action: [] for action in range(num_actions)}for state in range(num_states)}
+    self.P = {state: {action: [] for action in range(num_actions)}
+              for state in range(num_states)}
     for row in range(num_rows):
         for col in range(num_columns):
             state = self.encode(row, col)
@@ -244,6 +252,7 @@ with st.container():
     self.action_space = spaces.Discrete(num_actions)
     self.observation_space = spaces.Discrete(num_states) 
     '''      
+    st.code(code, language='python')
 
 col1, col2 = st.columns(2)
 
@@ -272,6 +281,7 @@ with col2:
     
     
 with st.container():
+    st.title("***Codigo de Entrenamiento***") 
     code='''
         alpha=0.5
 gamma=0.9
@@ -328,22 +338,23 @@ import pandas as pd
 from tqdm import tqdm    
 import gym
 
+st.title("***Parametros de Entrenamiento***") 
              
 alpha = st.selectbox(
      'Seleccione el valor de alpha',
-     (0.01, 0.05, 0.1,0.5,0.9))
+     (0.01, 0.05, 0.1,0.5,0.8,0.9))
 st.write('alpha: ', alpha)
 gamma = st.selectbox(
      'Seleccione el valor de gamma',
-     (0.01, 0.1, 0.5,0.9))
+     (0.01, 0.1, 0.5,0.8,0.9))
 st.write('gamma: ', gamma)
 epsilon = st.selectbox(
      'Seleccione el valor de epsilon',
-     (0.001, 0.01, 0.05 ,0.1 ,0.5,0.9))
+     (0.0001,0.001, 0.01, 0.05 ,0.1 ,0.5,0.9))
 st.write('epsilon: ', epsilon)
 nro_de_episodios = st.selectbox(
      'Seleccione el valor de epocas',
-     (10, 1000, 10000,100000))
+     (100, 1000, 10000,100000))
 st.write('Epocas:', nro_de_episodios)
 
 def main():
@@ -354,6 +365,8 @@ def main():
         q_table=np.zeros([entorno.observation_space.n,entorno.action_space.n])
         listarecompnesa=[]
         acciones=[]
+        llego=0
+        nollego=0
         for episodio in tqdm(range(0,nro_de_episodios)): 
           #Resetear el entorno
           estado = entorno.reset()
@@ -388,8 +401,15 @@ def main():
             #Actualizar Q-table
             q_table[estado,accion]=nuevo_q_valor
             estado= siguiente_estado
+            
           listarecompnesa.append(r_sum)
           acciones.append(accion)
+          if r_sum > 0 :
+              llego+=1
+          else:
+              nollego+=1
+          
+                  
         col1, col2  = st.columns(2)
         with col1:
             st.header("Recompensa")
@@ -410,12 +430,26 @@ def main():
         with col4:
             st.write('Epocas:', nro_de_episodios)
         st.line_chart(listarecompnesa)
+        
+        
+        etiquetas= ["SI LLEGO","NO LLEGO"]
+        x = np.array([llego,nollego])
+        fig = plt.figure(figsize=(6, 3))
+        fig.patch.set_facecolor('black')
+        plt.rcParams['text.color'] = 'white'
+        plt.pie(x, labels = etiquetas ,colors=['green','red'], autopct='%1.1f%%' ,startangle = 90)
+        st.pyplot(fig)
+
+            
     else:
          st.write(' ')
 
 if __name__== '__main__':
     main()
   
+video_file = open('Laberinto.mkv', 'rb')
+video_bytes = video_file.read()
+st.video(video_bytes)
 # st.header("Recompensa")
 # Lectura=pd.read_csv("recompensa.csv",index_col=(0))
 # st.dataframe(Lectura)
