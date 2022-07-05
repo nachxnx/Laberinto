@@ -92,34 +92,34 @@ print(len(listarecompnesa))
 
 
 
-# total_epochs=0
-# total_penalties=0
-# num_of_episodes=10
+total_epochs=0
+total_penalties=0
+num_of_episodes=10
 
-# for episode in range(num_of_episodes):
-#   state=entorno.reset()
-#   epochs=0
-#   penalties=0
-#   reward=0
+for episode in range(num_of_episodes):
+  state=entorno.reset()
+  epochs=0
+  penalties=0
+  reward=0
 
-#   terminated = False
+  terminated = False
 
-#   while not terminated:
-#     action=np.argmax(q_table[state])
-#     state, reward, terminated, info=entorno.step(action)
+  while not terminated:
+    action=np.argmax(q_table[state])
+    state, reward, terminated, info=entorno.step(action)
 
-#     time.sleep(0.5)
-#     clear_output(wait=True)
-#     entorno.render()
+    time.sleep(0.5)
+    clear_output(wait=True)
+    entorno.render()
       
 
-#     if reward == -10:
-#       penalties += 1
+    if reward == -10:
+      penalties += 1
       
-#     epochs += 1
+    epochs += 1
     
-#   total_penalties += penalties
-#   total_epochs +=epochs
+  total_penalties += penalties
+  total_epochs +=epochs
   
   
 # #plt.plot(X,Y)

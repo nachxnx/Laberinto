@@ -12,8 +12,11 @@ from PIL import Image
 
 
 st.title("***Resolucion de un Laberinto por medio de Reinforcement Learning***")
+st.write("***Realizado por***")
+st.write("***Brenda Sofia Cruz Noguera***")
+st.write("***Ignacio Noguera Martinez***")
 
-
+st.title("     ")
 txt = st.text_area('Introduccion', '''
      Para la aplicacion del Reinforcement Learning optamos por el 'taxi-V3' que se encuentra en 
      el repositorio de  OpenAI-gym.
